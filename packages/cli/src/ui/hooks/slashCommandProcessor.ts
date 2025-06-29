@@ -593,6 +593,7 @@ export const useSlashCommandProcessor = (
       },
       {
         name: 'about',
+        altName: 'version',
         description: 'show version info',
         action: async (_mainCommand, _subCommand, _args) => {
           const osVersion = process.platform;

@@ -336,87 +336,97 @@ describe('useSlashCommandProcessor', () => {
     });
   });
 
-  describe('/about command', () => {
-    it('should show the about box with all details including auth and project', async () => {
-      // Arrange
-      mockGetCliVersionFn.mockResolvedValue('test-version');
-      process.env.SANDBOX = 'gemini-sandbox';
-      process.env.GOOGLE_CLOUD_PROJECT = 'test-gcp-project';
-      vi.mocked(mockConfig.getModel).mockReturnValue('test-model-from-config');
+  describe('/about and /version commands', () => {
+    it.each([['/about'], ['/version']])(
+      'should show the about box for command %s',
+      async (command) => {
+        // Arrange
+        mockGetCliVersionFn.mockResolvedValue('test-version');
+        process.env.SANDBOX = 'gemini-sandbox';
+        process.env.GOOGLE_CLOUD_PROJECT = 'test-gcp-project';
+        vi.mocked(mockConfig.getModel).mockReturnValue(
+          'test-model-from-config',
+        );
 
-      const settings = {
-        merged: {
-          selectedAuthType: 'test-auth-type',
-          contextFileName: 'GEMINI.md',
-        },
-      } as LoadedSettings;
+        const settings = {
+          merged: {
+            selectedAuthType: 'test-auth-type',
+            contextFileName: 'GEMINI.md',
+          },
+        } as LoadedSettings;
 
-      const { result } = renderHook(() =>
-        useSlashCommandProcessor(
-          mockConfig,
-          settings,
-          [],
-          mockAddItem,
-          mockClearItems,
-          mockLoadHistory,
-          mockRefreshStatic,
-          mockSetShowHelp,
-          mockOnDebugMessage,
-          mockOpenThemeDialog,
-          mockOpenAuthDialog,
-          mockOpenEditorDialog,
-          mockPerformMemoryRefresh,
-          mockCorgiMode,
-          false,
-          mockSetQuittingMessages,
-        ),
-      );
+        const { result } = renderHook(() =>
+          useSlashCommandProcessor(
+            mockConfig,
+            settings,
+            [],
+            mockAddItem,
+            mockClearItems,
+            mockLoadHistory,
+            mockRefreshStatic,
+            mockSetShowHelp,
+            mockOnDebugMessage,
+            mockOpenThemeDialog,
+            mockOpenAuthDialog,
+            mockOpenEditorDialog,
+            mockPerformMemoryRefresh,
+            mockCorgiMode,
+            false,
+            mockSetQuittingMessages,
+          ),
+        );
 
-      // Act
-      await act(async () => {
-        await result.current.handleSlashCommand('/about');
-      });
+        // Act
+        await act(async () => {
+          await result.current.handleSlashCommand(command);
+        });
 
-      // Assert
-      expect(mockAddItem).toHaveBeenCalledTimes(2); // user message + about message
-      expect(mockAddItem).toHaveBeenNthCalledWith(
-        2,
-        expect.objectContaining({
-          type: 'about',
-          cliVersion: 'test-version',
-          osVersion: 'test-platform',
-          sandboxEnv: 'gemini-sandbox',
-          modelVersion: 'test-model-from-config',
-          selectedAuthType: 'test-auth-type',
-          gcpProject: 'test-gcp-project',
-        }),
-        expect.any(Number),
-      );
-    });
+        // Assert
+        expect(mockAddItem).toHaveBeenCalledTimes(2); // user message + about message
+        expect(mockAddItem).toHaveBeenNthCalledWith(
+          2,
+          expect.objectContaining({
+            type: 'about',
+            cliVersion: 'test-version',
+            osVersion: 'test-platform',
+            sandboxEnv: 'gemini-sandbox',
+            modelVersion: 'test-model-from-config',
+            selectedAuthType: 'test-auth-type',
+            gcpProject: 'test-gcp-project',
+          }),
+          expect.any(Number),
+        );
+      },
+    );
 
-    it('should show sandbox-exec profile when applicable', async () => {
-      // Arrange
-      mockGetCliVersionFn.mockResolvedValue('test-version');
-      process.env.SANDBOX = 'sandbox-exec';
-      process.env.SEATBELT_PROFILE = 'test-profile';
-      vi.mocked(mockConfig.getModel).mockReturnValue('test-model-from-config');
+    it.each([['/about'], ['/version']])(
+      'should show sandbox-exec profile when applicable for command %s',
+      async (command) => {
+        // Arrange
+        mockGetCliVersionFn.mockResolvedValue('test-version');
+        process.env.SANDBOX = 'sandbox-exec';
+        process.env.SEATBELT_PROFILE = 'test-profile';
+        vi.mocked(mockConfig.getModel).mockReturnValue(
+          'test-model-from-config',
+        );
 
-      const { result } = getProcessorHook();
+        const { result } = getProcessorHook();
 
-      // Act
-      await act(async () => {
-        await result.current.handleSlashCommand('/about');
-      });
+        // Act
+        await act(async () => {
+          await result.current.handleSlashCommand(command);
+        });
 
-      // Assert
-      expect(mockAddItem).toHaveBeenNthCalledWith(
-        2,
-        expect.objectContaining({
-          sandboxEnv: 'sandbox-exec (test-profile)',
-        }),
-        expect.any(Number),
-      );
-    });
+        // Assert
+        expect(mockAddItem).toHaveBeenNthCalledWith(
+          2,
+          expect.objectContaining({
+            sandboxEnv: 'sandbox-exec (test-profile)',
+          }),
+          expect.any(Number),
+        );
+      },
+    );
   });
 
   describe('Other commands', () => {
