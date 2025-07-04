@@ -26,6 +26,7 @@ vi.mock('google-auth-library');
 vi.mock('http');
 vi.mock('open');
 vi.mock('crypto');
+vi.mock('is-interactive', () => ({ default: () => true }));
 
 describe('oauth2', () => {
   let tempHomeDir: string;

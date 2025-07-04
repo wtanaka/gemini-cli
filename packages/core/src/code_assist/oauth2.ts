@@ -13,6 +13,11 @@ import open from 'open';
 import path from 'node:path';
 import { promises as fs } from 'node:fs';
 import * as os from 'os';
+import isInteractive from 'is-interactive';
+import { printNonInteractiveMessage } from '@google/gemini-cli-cli/src/utils/printNonInteractiveMessage.js';
+import { Text } from 'ink';
+import React from 'react';
+import isInteractive from 'is-interactive';
 
 //  OAuth Client ID used to initiate OAuth2Client class.
 const OAUTH_CLIENT_ID =
@@ -65,13 +70,39 @@ export async function getOauthClient(): Promise<OAuth2Client> {
 
   const webLogin = await authWithWeb(client);
 
-  console.log(
-    `\n\nCode Assist login required.\n` +
-      `Attempting to open authentication page in your browser.\n` +
-      `Otherwise navigate to:\n\n${webLogin.authUrl}\n\n`,
-  );
-  await open(webLogin.authUrl);
-  console.log('Waiting for authentication...');
+  if (isInteractive()) {
+    console.log(
+      `
+
+Code Assist login required.
+` +
+        `Attempting to open authentication page in your browser.
+` +
+        `If that does not work, navigate to:
+
+${webLogin.authUrl}
+
+`,
+    );
+    await open(webLogin.authUrl);
+  } else {
+    printNonInteractiveMessage(
+      <Text>
+        {'
+
+Code Assist login required.
+' +
+          'Please open the following URL in your browser to authenticate:
+
+' +
+          webLogin.authUrl +
+          '
+
+'}
+      </Text>,
+    );
+  }
+  printNonInteractiveMessage(<Text>Waiting for authentication...</Text>);
 
   await webLogin.loginCompletePromise;
 

@@ -279,7 +279,7 @@ async function validateNonInterActiveAuth(
   // still expect that exists
   if (!selectedAuthType && !process.env.GEMINI_API_KEY) {
     console.error(
-      'Please set an Auth method in your .gemini/settings.json OR specify GEMINI_API_KEY env variable file before running',
+      message={`Please set an Auth method in your .gemini/settings.json OR specify GEMINI_API_KEY env variable file before running`}
     );
     process.exit(1);
   }
