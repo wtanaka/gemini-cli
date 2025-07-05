@@ -35,7 +35,7 @@ export interface ContentGenerator {
 }
 
 export enum AuthType {
-  LOGIN_WITH_GOOGLE = 'oauth-personal',
+  LOGIN_WITH_GOOGLE_PERSONAL = 'oauth-personal',
   USE_GEMINI = 'gemini-api-key',
   USE_VERTEX_AI = 'vertex-ai',
 }
@@ -101,7 +101,6 @@ export async function createContentGeneratorConfig(
 
 export async function createContentGenerator(
   config: ContentGeneratorConfig,
-  sessionId?: string,
 ): Promise<ContentGenerator> {
   const version = process.env.CLI_VERSION || process.version;
   const httpOptions = {
@@ -110,11 +109,7 @@ export async function createContentGenerator(
     },
   };
   if (config.authType === AuthType.LOGIN_WITH_GOOGLE) {
-    return createCodeAssistContentGenerator(
-      httpOptions,
-      config.authType,
-      sessionId,
-    );
+    return createCodeAssistContentGenerator(httpOptions, config.authType);
   }
 
   if (

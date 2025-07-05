@@ -43,22 +43,15 @@ import * as metrics from './metrics.js';
 import * as sdk from './sdk.js';
 import { vi, describe, beforeEach, it, expect } from 'vitest';
 import { GenerateContentResponseUsageMetadata } from '@google/genai';
-import * as uiTelemetry from './uiTelemetry.js';
 
 describe('loggers', () => {
   const mockLogger = {
     emit: vi.fn(),
   };
-  const mockUiEvent = {
-    addEvent: vi.fn(),
-  };
 
   beforeEach(() => {
     vi.spyOn(sdk, 'isTelemetrySdkInitialized').mockReturnValue(true);
     vi.spyOn(logs, 'getLogger').mockReturnValue(mockLogger);
-    vi.spyOn(uiTelemetry.uiTelemetryService, 'addEvent').mockImplementation(
-      mockUiEvent.addEvent,
-    );
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2025-01-01T00:00:00.000Z'));
   });
@@ -222,7 +215,6 @@ describe('loggers', () => {
           cached_content_token_count: 10,
           thoughts_token_count: 5,
           tool_token_count: 2,
-          total_token_count: 0,
           response_text: 'test-response',
         },
       });
@@ -241,12 +233,6 @@ describe('loggers', () => {
         50,
         'output',
       );
-
-      expect(mockUiEvent.addEvent).toHaveBeenCalledWith({
-        ...event,
-        'event.name': EVENT_API_RESPONSE,
-        'event.timestamp': '2025-01-01T00:00:00.000Z',
-      });
     });
 
     it('should log an API response with an error', () => {
@@ -276,12 +262,6 @@ describe('loggers', () => {
           'event.timestamp': '2025-01-01T00:00:00.000Z',
           'error.message': 'test-error',
         },
-      });
-
-      expect(mockUiEvent.addEvent).toHaveBeenCalledWith({
-        ...event,
-        'event.name': EVENT_API_RESPONSE,
-        'event.timestamp': '2025-01-01T00:00:00.000Z',
       });
     });
   });
@@ -437,12 +417,6 @@ describe('loggers', () => {
         true,
         ToolCallDecision.ACCEPT,
       );
-
-      expect(mockUiEvent.addEvent).toHaveBeenCalledWith({
-        ...event,
-        'event.name': EVENT_TOOL_CALL,
-        'event.timestamp': '2025-01-01T00:00:00.000Z',
-      });
     });
     it('should log a tool call with a reject decision', () => {
       const call: ErroredToolCall = {
@@ -497,12 +471,6 @@ describe('loggers', () => {
         false,
         ToolCallDecision.REJECT,
       );
-
-      expect(mockUiEvent.addEvent).toHaveBeenCalledWith({
-        ...event,
-        'event.name': EVENT_TOOL_CALL,
-        'event.timestamp': '2025-01-01T00:00:00.000Z',
-      });
     });
 
     it('should log a tool call with a modify decision', () => {
@@ -559,12 +527,6 @@ describe('loggers', () => {
         true,
         ToolCallDecision.MODIFY,
       );
-
-      expect(mockUiEvent.addEvent).toHaveBeenCalledWith({
-        ...event,
-        'event.name': EVENT_TOOL_CALL,
-        'event.timestamp': '2025-01-01T00:00:00.000Z',
-      });
     });
 
     it('should log a tool call without a decision', () => {
@@ -619,12 +581,6 @@ describe('loggers', () => {
         true,
         undefined,
       );
-
-      expect(mockUiEvent.addEvent).toHaveBeenCalledWith({
-        ...event,
-        'event.name': EVENT_TOOL_CALL,
-        'event.timestamp': '2025-01-01T00:00:00.000Z',
-      });
     });
 
     it('should log a failed tool call with an error', () => {
@@ -685,12 +641,6 @@ describe('loggers', () => {
         false,
         undefined,
       );
-
-      expect(mockUiEvent.addEvent).toHaveBeenCalledWith({
-        ...event,
-        'event.name': EVENT_TOOL_CALL,
-        'event.timestamp': '2025-01-01T00:00:00.000Z',
-      });
     });
   });
 });

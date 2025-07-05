@@ -27,7 +27,7 @@ export const formatDuration = (milliseconds: number): string => {
   }
 
   if (milliseconds < 1000) {
-    return `${Math.round(milliseconds)}ms`;
+    return `${milliseconds}ms`;
   }
 
   const totalSeconds = milliseconds / 1000;

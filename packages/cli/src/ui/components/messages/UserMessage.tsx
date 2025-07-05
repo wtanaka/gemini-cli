@@ -17,15 +17,7 @@ export const UserMessage: React.FC<UserMessageProps> = ({ text }) => {
   const prefixWidth = prefix.length;
 
   return (
-    <Box
-      borderStyle="round"
-      borderColor={Colors.Gray}
-      flexDirection="row"
-      paddingX={2}
-      paddingY={0}
-      marginY={1}
-      alignSelf="flex-start"
-    >
+    <Box flexDirection="row" marginY={1}>
       <Box width={prefixWidth}>
         <Text color={Colors.Gray}>{prefix}</Text>
       </Box>

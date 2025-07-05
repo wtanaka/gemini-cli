@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { OAuth2Client } from 'google-auth-library';
+import { AuthClient } from 'google-auth-library';
 import {
   CodeAssistGlobalUserSettingResponse,
   LoadCodeAssistRequest,
@@ -40,23 +40,23 @@ export interface HttpOptions {
 }
 
 // TODO: Use production endpoint once it supports our methods.
-export const CODE_ASSIST_ENDPOINT = 'https://cloudcode-pa.googleapis.com';
+export const CODE_ASSIST_ENDPOINT =
+  process.env.CODE_ASSIST_ENDPOINT ?? 'https://cloudcode-pa.googleapis.com';
 export const CODE_ASSIST_API_VERSION = 'v1internal';
 
 export class CodeAssistServer implements ContentGenerator {
   constructor(
-    readonly client: OAuth2Client,
+    readonly auth: AuthClient,
     readonly projectId?: string,
     readonly httpOptions: HttpOptions = {},
-    readonly sessionId?: string,
   ) {}
 
   async generateContentStream(
     req: GenerateContentParameters,
   ): Promise<AsyncGenerator<GenerateContentResponse>> {
-    const resps = await this.requestStreamingPost<CaGenerateContentResponse>(
+    const resps = await this.streamEndpoint<CaGenerateContentResponse>(
       'streamGenerateContent',
-      toGenerateContentRequest(req, this.projectId, this.sessionId),
+      toGenerateContentRequest(req, this.projectId),
       req.config?.abortSignal,
     );
     return (async function* (): AsyncGenerator<GenerateContentResponse> {
@@ -69,9 +69,9 @@ export class CodeAssistServer implements ContentGenerator {
   async generateContent(
     req: GenerateContentParameters,
   ): Promise<GenerateContentResponse> {
-    const resp = await this.requestPost<CaGenerateContentResponse>(
+    const resp = await this.callEndpoint<CaGenerateContentResponse>(
       'generateContent',
-      toGenerateContentRequest(req, this.projectId, this.sessionId),
+      toGenerateContentRequest(req, this.projectId),
       req.config?.abortSignal,
     );
     return fromGenerateContentResponse(resp);
@@ -80,7 +80,7 @@ export class CodeAssistServer implements ContentGenerator {
   async onboardUser(
     req: OnboardUserRequest,
   ): Promise<LongrunningOperationResponse> {
-    return await this.requestPost<LongrunningOperationResponse>(
+    return await this.callEndpoint<LongrunningOperationResponse>(
       'onboardUser',
       req,
     );
@@ -89,14 +89,14 @@ export class CodeAssistServer implements ContentGenerator {
   async loadCodeAssist(
     req: LoadCodeAssistRequest,
   ): Promise<LoadCodeAssistResponse> {
-    return await this.requestPost<LoadCodeAssistResponse>(
+    return await this.callEndpoint<LoadCodeAssistResponse>(
       'loadCodeAssist',
       req,
     );
   }
 
   async getCodeAssistGlobalUserSetting(): Promise<CodeAssistGlobalUserSettingResponse> {
-    return await this.requestGet<CodeAssistGlobalUserSettingResponse>(
+    return await this.getEndpoint<CodeAssistGlobalUserSettingResponse>(
       'getCodeAssistGlobalUserSetting',
     );
   }
@@ -104,14 +104,14 @@ export class CodeAssistServer implements ContentGenerator {
   async setCodeAssistGlobalUserSetting(
     req: SetCodeAssistGlobalUserSettingRequest,
   ): Promise<CodeAssistGlobalUserSettingResponse> {
-    return await this.requestPost<CodeAssistGlobalUserSettingResponse>(
+    return await this.callEndpoint<CodeAssistGlobalUserSettingResponse>(
       'setCodeAssistGlobalUserSetting',
       req,
     );
   }
 
   async countTokens(req: CountTokensParameters): Promise<CountTokensResponse> {
-    const resp = await this.requestPost<CaCountTokenResponse>(
+    const resp = await this.callEndpoint<CaCountTokenResponse>(
       'countTokens',
       toCountTokenRequest(req),
     );
@@ -124,13 +124,13 @@ export class CodeAssistServer implements ContentGenerator {
     throw Error();
   }
 
-  async requestPost<T>(
+  async callEndpoint<T>(
     method: string,
     req: object,
     signal?: AbortSignal,
   ): Promise<T> {
-    const res = await this.client.request({
-      url: this.getMethodUrl(method),
+    const res = await this.auth.request({
+      url: `${CODE_ASSIST_ENDPOINT}/${CODE_ASSIST_API_VERSION}:${method}`,
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -143,9 +143,9 @@ export class CodeAssistServer implements ContentGenerator {
     return res.data as T;
   }
 
-  async requestGet<T>(method: string, signal?: AbortSignal): Promise<T> {
-    const res = await this.client.request({
-      url: this.getMethodUrl(method),
+  async getEndpoint<T>(method: string, signal?: AbortSignal): Promise<T> {
+    const res = await this.auth.request({
+      url: `${CODE_ASSIST_ENDPOINT}/${CODE_ASSIST_API_VERSION}:${method}`,
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -157,13 +157,13 @@ export class CodeAssistServer implements ContentGenerator {
     return res.data as T;
   }
 
-  async requestStreamingPost<T>(
+  async streamEndpoint<T>(
     method: string,
     req: object,
     signal?: AbortSignal,
   ): Promise<AsyncGenerator<T>> {
-    const res = await this.client.request({
-      url: this.getMethodUrl(method),
+    const res = await this.auth.request({
+      url: `${CODE_ASSIST_ENDPOINT}/${CODE_ASSIST_API_VERSION}:${method}`,
       method: 'POST',
       params: {
         alt: 'sse',
@@ -199,10 +199,5 @@ export class CodeAssistServer implements ContentGenerator {
         }
       }
     })();
-  }
-
-  getMethodUrl(method: string): string {
-    const endpoint = process.env.CODE_ASSIST_ENDPOINT ?? CODE_ASSIST_ENDPOINT;
-    return `${endpoint}/${CODE_ASSIST_API_VERSION}:${method}`;
   }
 }

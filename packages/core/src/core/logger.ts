@@ -10,6 +10,7 @@ import { Content } from '@google/genai';
 import { getProjectTempDir } from '../utils/paths.js';
 
 const LOG_FILE_NAME = 'logs.json';
+const CHECKPOINT_FILE_NAME = 'checkpoint.json';
 
 export enum MessageSenderType {
   USER = 'user',
@@ -26,6 +27,7 @@ export interface LogEntry {
 export class Logger {
   private geminiDir: string | undefined;
   private logFilePath: string | undefined;
+  private checkpointFilePath: string | undefined;
   private sessionId: string | undefined;
   private messageId = 0; // Instance-specific counter for the next messageId
   private initialized = false;
@@ -96,6 +98,7 @@ export class Logger {
 
     this.geminiDir = getProjectTempDir(process.cwd());
     this.logFilePath = path.join(this.geminiDir, LOG_FILE_NAME);
+    this.checkpointFilePath = path.join(this.geminiDir, CHECKPOINT_FILE_NAME);
 
     try {
       await fs.mkdir(this.geminiDir, { recursive: true });
@@ -231,18 +234,18 @@ export class Logger {
     }
   }
 
-  _checkpointPath(tag: string): string {
-    if (!tag.length) {
-      throw new Error('No checkpoint tag specified.');
-    }
-    if (!this.geminiDir) {
+  _checkpointPath(tag: string | undefined): string {
+    if (!this.checkpointFilePath || !this.geminiDir) {
       throw new Error('Checkpoint file path not set.');
+    }
+    if (!tag) {
+      return this.checkpointFilePath;
     }
     return path.join(this.geminiDir, `checkpoint-${tag}.json`);
   }
 
-  async saveCheckpoint(conversation: Content[], tag: string): Promise<void> {
-    if (!this.initialized) {
+  async saveCheckpoint(conversation: Content[], tag?: string): Promise<void> {
+    if (!this.initialized || !this.checkpointFilePath) {
       console.error(
         'Logger not initialized or checkpoint file path not set. Cannot save a checkpoint.',
       );
@@ -256,8 +259,8 @@ export class Logger {
     }
   }
 
-  async loadCheckpoint(tag: string): Promise<Content[]> {
-    if (!this.initialized) {
+  async loadCheckpoint(tag?: string): Promise<Content[]> {
+    if (!this.initialized || !this.checkpointFilePath) {
       console.error(
         'Logger not initialized or checkpoint file path not set. Cannot load checkpoint.',
       );
@@ -265,6 +268,7 @@ export class Logger {
     }
 
     const path = this._checkpointPath(tag);
+
     try {
       const fileContent = await fs.readFile(path, 'utf-8');
       const parsedContent = JSON.parse(fileContent);
@@ -276,12 +280,12 @@ export class Logger {
       }
       return parsedContent as Content[];
     } catch (error) {
-      console.error(`Failed to read or parse checkpoint file ${path}:`, error);
       const nodeError = error as NodeJS.ErrnoException;
       if (nodeError.code === 'ENOENT') {
         // File doesn't exist, which is fine. Return empty array.
         return [];
       }
+      console.error(`Failed to read or parse checkpoint file ${path}:`, error);
       return [];
     }
   }
@@ -289,6 +293,7 @@ export class Logger {
   close(): void {
     this.initialized = false;
     this.logFilePath = undefined;
+    this.checkpointFilePath = undefined;
     this.logs = [];
     this.sessionId = undefined;
     this.messageId = 0;

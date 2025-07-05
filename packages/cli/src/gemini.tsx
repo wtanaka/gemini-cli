@@ -34,7 +34,13 @@ import {
   sessionId,
   logUserPrompt,
   AuthType,
+  HeadlessAuthRequestError,
+  completeHeadlessAuthProcess,
+  getOauthClient,
 } from '@google/gemini-cli-core';
+import { OAuth2Client } from 'google-auth-library';
+import readline from 'node:readline/promises';
+import { stdin as input, stdout as output } from 'node:process';
 import { validateAuthMethod } from './config/auth.js';
 import { setMaxSizedBoxDebugging } from './ui/components/shared/MaxSizedBox.js';
 
@@ -116,6 +122,21 @@ export async function main() {
 
   // Initialize centralized FileDiscoveryService
   config.getFileService();
+
+  // Handle initial OAuth for GCA if needed, before sandbox or main UI
+  // This is primarily for headless scenarios where user interaction is needed upfront.
+  if (settings.merged.selectedAuthType === AuthType.LOGIN_WITH_GOOGLE) {
+    // We call this to potentially trigger the headless stdout flow if creds are missing/invalid.
+    // If auth is fine, or if it's GUI and can somehow proceed, it won't block here by exiting.
+    // If it handles headless auth, it returns true and exits on failure, or continues on success.
+    // If it returns false, it means auth was okay or not applicable for this pre-check.
+    await handleInitialHeadlessAuth(config, settings);
+    // Note: handleInitialHeadlessAuth will process.exit(1) on auth failure.
+    // If it returns true, auth was done via stdout. If false, either creds were ok,
+    // or it's a GUI case that getOauthClient might have tried to handle (less likely here),
+    // or it's not LOGIN_WITH_GOOGLE_PERSONAL.
+  }
+
   if (config.getCheckpointingEnabled()) {
     try {
       await config.getGitService();
@@ -294,4 +315,56 @@ async function validateNonInterActiveAuth(
 
   await nonInteractiveConfig.refreshAuth(selectedAuthType);
   return nonInteractiveConfig;
+}
+
+async function handleInitialHeadlessAuth(config: Config, settings: LoadedSettings): Promise<boolean> {
+  if (settings.merged.selectedAuthType === AuthType.LOGIN_WITH_GOOGLE) {
+    console.debug('[gemini.tsx] Initial auth check for LOGIN_WITH_GOOGLE_PERSONAL');
+    try {
+      // Try to get client. If creds are cached and valid, it returns.
+      // If fresh login needed & GUI, it handles it (less likely pre-Ink).
+      // If fresh login needed & headless, it throws HeadlessAuthRequestError.
+      await getOauthClient(); // We don't need the client instance here, just checking if it throws for headless.
+      console.debug('[gemini.tsx] getOauthClient succeeded or handled GUI auth (initial check).');
+      return false; // Auth is fine or was handled by GUI flow if one could start.
+    } catch (err) {
+      if (err instanceof HeadlessAuthRequestError) {
+        console.debug('[gemini.tsx] Caught HeadlessAuthRequestError during initial check.');
+        const { challenge, client } = err;
+
+        process.stdout.write("\n\n\n");
+        process.stdout.write("--- Initial Authentication Required ---\n");
+        process.stdout.write("Gemini CLI needs you to authenticate with Google.\n");
+        process.stdout.write("Please open the following URL in your browser:\n");
+        process.stdout.write(`\x1b]8;;${challenge.authUrl}\x07${challenge.authUrl}\x1b]8;;${"\x07"}\n`); // OSC 8 Link
+        process.stdout.write("\nAfter authenticating, your browser will redirect to a localhost URL (it may show an error page).\n");
+        process.stdout.write("Copy the ENTIRE URL from your browser's address bar.\n");
+        process.stdout.write("---------------------------------------\n");
+
+        const rl = readline.createInterface({ input, output });
+        try {
+          const pastedCallbackUrl = await rl.question('Paste the full callback URL here and press Enter: ');
+          rl.close(); // Close readline interface immediately after getting input
+
+          if (!pastedCallbackUrl.trim()) {
+            process.stderr.write("\nAuthentication cancelled: No URL provided.\n");
+            process.exit(1);
+          }
+
+          await completeHeadlessAuthProcess(client, pastedCallbackUrl.trim(), challenge.state, challenge.redirectUri);
+          process.stdout.write("\nAuthentication successful! You can now use Gemini CLI.\n\n");
+          return true; // Indicates initial headless auth was performed.
+        } catch (authProcessError) {
+          rl.close(); // Ensure readline is closed on error too
+          process.stderr.write(`\nAuthentication failed: ${(authProcessError as Error).message}\nPlease check the pasted URL or try restarting the CLI.\n`);
+          process.exit(1);
+        }
+      } else {
+        // Other errors during the initial getOauthClient call
+        process.stderr.write(`\nAn unexpected error occurred during initial authentication setup: ${ (err as Error).message}\nPlease try again or check your configuration.\n`);
+        process.exit(1);
+      }
+    }
+  }
+  return false; // No OAuth pre-handling was done or needed for other auth types.
 }

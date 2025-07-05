@@ -113,7 +113,7 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
         return;
       }
       const query = buffer.text;
-      const suggestion = completionSuggestions[indexToUse].value;
+      const selectedSuggestion = completionSuggestions[indexToUse];
 
       if (query.trimStart().startsWith('/')) {
         const parts = query.trimStart().substring(1).split(' ');
@@ -131,7 +131,7 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
             buffer.setText(newValue);
           }
         } else {
-          const newValue = base + suggestion;
+          const newValue = base + selectedSuggestion.value;
           buffer.setText(newValue);
           handleSubmitAndClear(newValue);
         }
@@ -147,7 +147,7 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
         buffer.replaceRangeByOffset(
           autoCompleteStartIndex,
           buffer.text.length,
-          suggestion,
+          selectedSuggestion.value,
         );
       }
       resetCompletionState();

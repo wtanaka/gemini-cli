@@ -23,7 +23,6 @@ export const EDITOR_DISPLAY_NAMES: Record<EditorType, string> = {
   windsurf: 'Windsurf',
   cursor: 'Cursor',
   vim: 'Vim',
-  neovim: 'Neovim',
 };
 
 class EditorSettingsManager {
@@ -37,7 +36,6 @@ class EditorSettingsManager {
       'windsurf',
       'cursor',
       'vim',
-      'neovim',
     ];
     this.availableEditors = [
       {

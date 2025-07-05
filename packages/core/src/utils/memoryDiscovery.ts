@@ -14,7 +14,6 @@ import {
   getAllGeminiMdFilenames,
 } from '../tools/memoryTool.js';
 import { FileDiscoveryService } from '../services/fileDiscoveryService.js';
-import { processImports } from './memoryImportProcessor.js';
 
 // Simple console logger, similar to the one previously in CLI's config.ts
 // TODO: Integrate with a more robust server-side logger if available/appropriate.
@@ -224,18 +223,10 @@ async function readGeminiMdFiles(
   for (const filePath of filePaths) {
     try {
       const content = await fs.readFile(filePath, 'utf-8');
-
-      // Process imports in the content
-      const processedContent = await processImports(
-        content,
-        path.dirname(filePath),
-        debugMode,
-      );
-
-      results.push({ filePath, content: processedContent });
+      results.push({ filePath, content });
       if (debugMode)
         logger.debug(
-          `Successfully read and processed imports: ${filePath} (Length: ${processedContent.length})`,
+          `Successfully read: ${filePath} (Length: ${content.length})`,
         );
     } catch (error: unknown) {
       const isTestEnv = process.env.NODE_ENV === 'test' || process.env.VITEST;

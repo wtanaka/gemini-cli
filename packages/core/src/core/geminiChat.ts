@@ -72,6 +72,10 @@ function isValidContent(content: Content): boolean {
  * @throws Error if the history contains an invalid role.
  */
 function validateHistory(history: Content[]) {
+  // Empty history is valid.
+  if (history.length === 0) {
+    return;
+  }
   for (const content of history) {
     if (content.role !== 'user' && content.role !== 'model') {
       throw new Error(`Role must be user or model, but got ${content.role}.`);
@@ -538,7 +542,7 @@ export class GeminiChat {
       automaticFunctionCallingHistory.length > 0
     ) {
       this.history.push(
-        ...extractCuratedHistory(automaticFunctionCallingHistory),
+        ...extractCuratedHistory(automaticFunctionCallingHistory!),
       );
     } else {
       this.history.push(userInput);

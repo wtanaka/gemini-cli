@@ -11,7 +11,7 @@ const ansiColors: ColorsTheme = {
   Background: 'black',
   Foreground: 'white',
   LightBlue: 'bluebright',
-  AccentBlue: 'blue',
+  AccentBlue: '#0000FF',
   AccentPurple: 'magenta',
   AccentCyan: 'cyan',
   AccentGreen: 'green',

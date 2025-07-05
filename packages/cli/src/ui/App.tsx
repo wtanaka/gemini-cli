@@ -35,6 +35,7 @@ import { Footer } from './components/Footer.js';
 import { ThemeDialog } from './components/ThemeDialog.js';
 import { AuthDialog } from './components/AuthDialog.js';
 import { AuthInProgress } from './components/AuthInProgress.js';
+import { HeadlessAuthPrompt } from './components/HeadlessAuthPrompt.js';
 import { EditorSettingsDialog } from './components/EditorSettingsDialog.js';
 import { Colors } from './colors.js';
 import { Help } from './components/Help.js';
@@ -153,9 +154,15 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     isAuthDialogOpen,
     openAuthDialog,
     handleAuthSelect,
+    handleAuthHighlight,
     isAuthenticating,
     cancelAuthentication,
-  } = useAuthCommand(settings, setAuthError, config);
+    isHeadlessPromptVisible,
+    headlessAuthChallenge,
+    headlessAuthPromptError,
+    submitHeadlessUrl,
+    cancelHeadlessPrompt,
+  } = useAuthCommand(settings, setAuthError, config, addItem);
 
   useEffect(() => {
     if (settings.merged.selectedAuthType) {
@@ -567,9 +574,6 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
   return (
     <StreamingContext.Provider value={streamingState}>
       <Box flexDirection="column" marginBottom={1} width="90%">
-        {/* Move UpdateNotification outside Static so it can re-render when updateMessage changes */}
-        {updateMessage && <UpdateNotification message={updateMessage} />}
-
         {/*
          * The Static component is an Ink intrinsic in which there can only be 1 per application.
          * Because of this restriction we're hacking it slightly by having a 'header' item here to
@@ -586,7 +590,8 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
           items={[
             <Box flexDirection="column" key="header">
               <Header terminalWidth={terminalWidth} />
-              {!settings.merged.hideTips && <Tips config={config} />}
+              <Tips config={config} />
+              {updateMessage && <UpdateNotification message={updateMessage} />}
             </Box>,
             ...history.map((h) => (
               <HistoryItemDisplay
@@ -661,18 +666,26 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
                 terminalWidth={mainAreaWidth}
               />
             </Box>
+          ) : isHeadlessPromptVisible && headlessAuthChallenge ? (
+            <HeadlessAuthPrompt
+              authUrl={headlessAuthChallenge.authUrl}
+              onSubmit={submitHeadlessUrl}
+              onCancel={cancelHeadlessPrompt}
+              errorMessage={headlessAuthPromptError}
+            />
           ) : isAuthenticating ? (
             <AuthInProgress
               onTimeout={() => {
                 setAuthError('Authentication timed out. Please try again.');
-                cancelAuthentication();
-                openAuthDialog();
+                cancelAuthentication(); // This will set isAuthenticating to false
+                openAuthDialog(); // Re-open the main dialog
               }}
             />
           ) : isAuthDialogOpen ? (
             <Box flexDirection="column">
               <AuthDialog
                 onSelect={handleAuthSelect}
+                onHighlight={handleAuthHighlight}
                 settings={settings}
                 initialErrorMessage={authError}
               />

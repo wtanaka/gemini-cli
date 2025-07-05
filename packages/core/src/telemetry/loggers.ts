@@ -31,7 +31,6 @@ import {
   recordToolCallMetrics,
 } from './metrics.js';
 import { isTelemetrySdkInitialized } from './sdk.js';
-import { uiTelemetryService, UiEvent } from './uiTelemetry.js';
 import { ClearcutLogger } from './clearcut-logger/clearcut-logger.js';
 
 const shouldLogUserPrompts = (config: Config): boolean =>
@@ -99,12 +98,6 @@ export function logUserPrompt(config: Config, event: UserPromptEvent): void {
 }
 
 export function logToolCall(config: Config, event: ToolCallEvent): void {
-  const uiEvent = {
-    ...event,
-    'event.name': EVENT_TOOL_CALL,
-    'event.timestamp': new Date().toISOString(),
-  } as UiEvent;
-  uiTelemetryService.addEvent(uiEvent);
   ClearcutLogger.getInstance(config)?.logToolCallEvent(event);
   if (!isTelemetrySdkInitialized()) return;
 
@@ -157,12 +150,6 @@ export function logApiRequest(config: Config, event: ApiRequestEvent): void {
 }
 
 export function logApiError(config: Config, event: ApiErrorEvent): void {
-  const uiEvent = {
-    ...event,
-    'event.name': EVENT_API_ERROR,
-    'event.timestamp': new Date().toISOString(),
-  } as UiEvent;
-  uiTelemetryService.addEvent(uiEvent);
   ClearcutLogger.getInstance(config)?.logApiErrorEvent(event);
   if (!isTelemetrySdkInitialized()) return;
 
@@ -199,12 +186,6 @@ export function logApiError(config: Config, event: ApiErrorEvent): void {
 }
 
 export function logApiResponse(config: Config, event: ApiResponseEvent): void {
-  const uiEvent = {
-    ...event,
-    'event.name': EVENT_API_RESPONSE,
-    'event.timestamp': new Date().toISOString(),
-  } as UiEvent;
-  uiTelemetryService.addEvent(uiEvent);
   ClearcutLogger.getInstance(config)?.logApiResponseEvent(event);
   if (!isTelemetrySdkInitialized()) return;
   const attributes: LogAttributes = {
