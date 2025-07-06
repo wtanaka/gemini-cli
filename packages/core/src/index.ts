@@ -20,7 +20,19 @@ export * from './core/coreToolScheduler.js';
 export * from './core/nonInteractiveToolExecutor.js';
 
 export * from './code_assist/codeAssist.js';
-export * from './code_assist/oauth2.js';
+export {
+  OauthWebLogin,
+  getOauthClient,
+  clearCachedCredentialFile,
+  getRawGoogleAccountId,
+  getCachedGoogleAccountId,
+  HeadlessAuthRequestError,
+  HeadlessAuthChallenge,
+  completeHeadlessAuthProcess,
+  getAvailablePort,
+  AuthMode,
+  AuthSuccess,
+} from './code_assist/oauth2.js';
 export * from './code_assist/server.js';
 export * from './code_assist/types.js';
 
