@@ -124,7 +124,7 @@ export async function main() {
 
   // Handle initial OAuth for GCA if needed, before sandbox or main UI
   // This is primarily for headless scenarios where user interaction is needed upfront.
-  if (settings.merged.selectedAuthType === AuthType.LOGIN_WITH_GOOGLE) {
+  if (settings.merged.selectedAuthType === AuthType.LOGIN_WITH_GOOGLE_PERSONAL) {
     // We call this to potentially trigger the headless stdout flow if creds are missing/invalid.
     // If auth is fine, or if it's GUI and can somehow proceed, it won't block here by exiting.
     // If it handles headless auth, it returns true and exits on failure, or continues on success.
@@ -317,8 +317,8 @@ async function validateNonInterActiveAuth(
 }
 
 async function handleInitialHeadlessAuth(config: Config, settings: LoadedSettings): Promise<boolean> {
-  if (settings.merged.selectedAuthType === AuthType.LOGIN_WITH_GOOGLE) {
-    console.debug('[gemini.tsx] Initial auth check for LOGIN_WITH_GOOGLE');
+  if (settings.merged.selectedAuthType === AuthType.LOGIN_WITH_GOOGLE_PERSONAL) {
+    console.debug('[gemini.tsx] Initial auth check for LOGIN_WITH_GOOGLE_PERSONAL');
     try {
       // Try to get client. If creds are cached and valid, it returns.
       // If fresh login needed & GUI, it handles it (less likely pre-Ink).
