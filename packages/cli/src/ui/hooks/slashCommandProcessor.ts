@@ -627,15 +627,24 @@ export const useSlashCommandProcessor = (
               // TODO: Set Prompt id for CompressChat from SlashCommandProcessor.
               .tryCompressChat('Prompt Id not set', true);
             if (compressed) {
-              addMessage({
-                type: MessageType.COMPRESSION,
-                compression: {
-                  isPending: false,
-                  originalTokenCount: compressed.originalTokenCount,
-                  newTokenCount: compressed.newTokenCount,
-                },
-                timestamp: new Date(),
-              });
+              if (compressed.newTokenCount > compressed.originalTokenCount) {
+                addMessage({
+                  type: MessageType.INFO,
+                  content:
+                    'Compression resulted in a larger context, so it was not applied.',
+                  timestamp: new Date(),
+                });
+              } else {
+                addMessage({
+                  type: MessageType.COMPRESSION,
+                  compression: {
+                    isPending: false,
+                    originalTokenCount: compressed.originalTokenCount,
+                    newTokenCount: compressed.newTokenCount,
+                  },
+                  timestamp: new Date(),
+                });
+              }
             } else {
               addMessage({
                 type: MessageType.ERROR,
@@ -646,7 +655,9 @@ export const useSlashCommandProcessor = (
           } catch (e) {
             addMessage({
               type: MessageType.ERROR,
-              content: `Failed to compress chat history: ${e instanceof Error ? e.message : String(e)}`,
+              content: `Failed to compress chat history: ${
+                e instanceof Error ? e.message : String(e)
+              }`,
               timestamp: new Date(),
             });
           }
